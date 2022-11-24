@@ -19,6 +19,8 @@ You can pass the shell script arguments to allow it to do more things automaticl
 | -m | --management-url | https://api.wiretrustee.com:33073 | Management URL (Defaults to Netbird SaaS) |
 | -sk | --setup-key | | Setup Key |
 | -q | --quiet | false | Don't prompt to confirm install |
+| -dn | --docker-name | netbird | Set Docker Container Name |
+| -dh | --docker-hostname | hostname | Set Docker Hostname |
 
 # Setup
 
