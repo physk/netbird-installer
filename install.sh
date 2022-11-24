@@ -62,7 +62,7 @@ VERSION=$(getLatestRelease)
 
 # Pretty Box Functions
 function prettyBoxCurrent () {
-  echo -e "[ ${yellow}CURRENT${clear}  ]${1}"
+  echo -e "[ ${yellow}CURRENT${clear}  ] ${1}"
 }
 function prettyBoxComplete () {
   echo -e "[ ${green}COMPLETE${clear} ] ${1}"
