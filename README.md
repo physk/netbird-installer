@@ -27,3 +27,5 @@ To do a fully automated install you could run the following (substituting your o
 ```bash
 curl -OLs https://raw.githubusercontent.com/physk/netbird-installer/main/install.sh && sudo bash install.sh --quiet --install-ui --setup-key=77C9F991-DC68-46FA-B06C-E02FC102697F
 ```
+
+![images/screenshot.png](images/screenshot.png)
