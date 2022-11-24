@@ -68,30 +68,11 @@ function prettyBoxComplete () {
   echo -e "[ ${green}COMPLETE${clear} ] ${1}"
 }
 function prettyBoxFailed () {
-  echo -e "[ ${red}FAILED${clear}   ] ${1}"
+  echo -e "[ ${red}FAILED${clear}   ] ${i}"
 }
 function prettyError () {
   echo -e "${red}${1}${clear}"
 }
-function currentCompleteFailed () {
-  # $1 = Command
-  # $2 = Current Text
-  # $3 = Complete Text
-  # $4 = Failed Text
-  # $5 = Additional Error
-  prettyBoxCurrent "${2}"
-  if ${1}; then
-    prettyBoxComplete "${3}"
-  else
-    prettyBoxFailed "${4}"
-    if [ -n "${5}" ]; then
-      echo
-      prettyError "${5}"
-    fi
-    exit 1
-  fi
-}
-
 # detect the platform
 OS="$(uname)"
 case $OS in
@@ -100,6 +81,8 @@ case $OS in
     ;;
   Darwin)
     OS='darwin'
+    binTgtDir=/usr/local/bin
+    man1TgtDir=/usr/local/share/man/man1
     ;;
   *)
     echo 'OS not supported'
@@ -107,16 +90,16 @@ case $OS in
     ;;
 esac
 
-OS_TYPE="$(uname -m)"
-case "$OS_TYPE" in 
+OS_type="$(uname -m)"
+case "$OS_type" in
   x86_64|amd64)
-    OS_TYPE='amd64'
+    OS_type='amd64'
     ;;
   i?86|x86)
-    OS_TYPE='386'
+    OS_type='386'
     ;;
   aarch64|arm64)
-    OS_TYPE='arm64'
+    OS_type='arm64'
     ;;
   *)
     echo "OS type ${OS_TYPE} not supported"
@@ -230,7 +213,7 @@ function showInstallSummary () {
   echo -e "| Install Summary"
   echo -e "------------------------------------------------"
   echo -e "| Target Operating System:       ${green}${OS}${clear}"
-  echo -e "| Target Arch:                   ${green}${OS_TYPE}${clear}"
+  echo -e "| Target Arch:                   ${green}${OS_type}${clear}"
   echo -e "| Target Version:                ${green}v${VERSION}${clear}"
   if ${INSTALL_APP}; then
     echo -e "| Install Netbird Binary:        ${green}Yes${clear}"
@@ -272,20 +255,48 @@ function checkContinueInstall () {
 function installNativeDownloadBinarys () {
   # Download Binary tar files
   if ${INSTALL_APP}; then
-    currentCompleteFailed "curl -OLfsS ${APP_URL}" "Downloading ${APP_MAIN_NAME}" "Downloaded ${APP_MAIN_NAME}" "Failed to download ${APP_MAIN_NAME}"
+    prettyBoxCurrent "Downloading ${APP_MAIN_NAME}"
+    curl -OLfsS "${APP_URL}"
+    if [ $? == 0 ]; then
+      prettyBoxComplete "Downloaded ${APP_MAIN_NAME}"
+    else
+      echo -e "[ ${red}FAILED${clear}     ] Failed to download ${APP_MAIN_NAME}"
+      exit 1
+    fi
   fi
   if ${INSTALL_UI}; then
-    currentCompleteFailed "curl -OLfsS ${UI_URL}" "Downloading ${APP_UI_NAME}" "Downloaded ${APP_UI_NAME}" "Failed to download ${APP_UI_NAME}"
+    prettyBoxCurrent "Downloading ${APP_UI_NAME}"
+    curl -OLfsS "${UI_URL}"
+    if [ $? == 0 ]; then
+      prettyBoxComplete "Downloaded ${APP_UI_NAME}"
+    else
+      prettyBoxFailed "Failed to download ${APP_UI_NAME}"
+      exit 1
+    fi
   fi
 }
 function installNativeExtractBinarys () {
   # Extract Binary tar files
   if ${INSTALL_APP}; then
-    currentCompleteFailed "tar xf ${APP_FILENAME}.tar.gz" "Extracting ${APP_MAIN_NAME}" "Extracted ${APP_MAIN_NAME}" "Failed to extract ${APP_MAIN_NAME}"
+    prettyBoxCurrent "Extracting ${APP_MAIN_NAME}"
+    tar xf "${APP_FILENAME}.tar.gz"
+    if [ $? == 0 ]; then
+      prettyBoxComplete "Extracted ${APP_MAIN_NAME}"
+    else
+      prettyBoxFailed "Failed to extract ${APP_MAIN_NAME}"
+      exit 1
+    fi
   fi
 
   if ${INSTALL_UI}; then
-    currentCompleteFailed "tar xf ${UI_FILENAME}.tar.gz" "Extracting ${APP_UI_NAME}" "Extracted ${APP_UI_NAME}" "Failed to extract ${APP_UI_NAME}"    prettyBoxCurrent "Extracting ${APP_UI_NAME}"
+    prettyBoxCurrent "Extracting ${APP_UI_NAME}"
+    tar xf "${UI_FILENAME}.tar.gz"
+    if [ $? == 0 ]; then
+      prettyBoxComplete "Extracted ${APP_UI_NAME}"
+    else
+      prettyBoxFailed "Failed to extract ${APP_UI_NAME}"
+      exit 1
+    fi
   fi
 }
 function installNativePlaceBinarys () {
@@ -293,31 +304,87 @@ function installNativePlaceBinarys () {
     case "${OS}" in
       'linux')
         # Copy File
-        currentCompleteFailed "cp ${APP_MAIN_NAME} /usr/bin/${APP_MAIN_NAME}.new" "Copying ${APP_MAIN_NAME} to /usr/bin/${APP_MAIN_NAME}.new" "Binary copied succesfully" "Failed to copy Binary"
+        prettyBoxCurrent "Copying ${APP_MAIN_NAME} to /usr/bin/${APP_MAIN_NAME}.new"
+        cp "${APP_MAIN_NAME}" "/usr/bin/${APP_MAIN_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary copied succesfully"
+        else
+          prettyBoxFailed "Failed to copy Binary"
+          exit 1
+        fi
 
         # Set Binary Mode
-        currentCompleteFailed "chmod 775 /usr/bin/${APP_MAIN_NAME}.new" "Setting /usr/bin/${APP_MAIN_NAME}.new to 0755" "Binary modes set succesfully" "Failed to set Binary file modes"
+        prettyBoxCurrent "Setting /usr/bin/${APP_MAIN_NAME}.new to 0755"
+        chmod 775 "/usr/bin/${APP_MAIN_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary modes set succesfully"
+        else
+          prettyBoxFailed "Failed to set Binary file modes"
+          exit 1
+        fi
 
         # Set owner and group
-        currentCompleteFailed "chown root:root /usr/bin/${APP_MAIN_NAME}.new" "Setting /usr/bin/${APP_MAIN_NAME}.new owner and group to root" "Binary owner and group set succesfully" "Failed to set Binary File owner and group"
+        prettyBoxCurrent "Setting /usr/bin/${APP_MAIN_NAME}.new owner and group to root"
+        chown root:root "/usr/bin/${APP_MAIN_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary owner and group set succesfully"
+        else
+          prettyBoxFailed "Failed to set Binary File owner and group"
+          exit 1
+        fi
 
         # Overwrite /usr/bin/netbird
-        currentCompleteFailed "mv /usr/bin/${APP_MAIN_NAME}.new /usr/bin/${APP_MAIN_NAME}" "Overwriting /usr/bin/${APP_MAIN_NAME} with /usr/bin/${APP_MAIN_NAME}.new" "Binary Overwritten succesfully" "Failed to overwrite /usr/bin/${APP_MAIN_NAME}"
+        prettyBoxCurrent "Overwriting /usr/bin/${APP_MAIN_NAME} with /usr/bin/${APP_MAIN_NAME}.new"
+        mv "/usr/bin/${APP_MAIN_NAME}.new" "/usr/bin/${APP_MAIN_NAME}"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary Overwritten succesfully"
+        else
+          prettyBoxFailed "Failed to overwrite /usr/bin/${APP_MAIN_NAME}"
+          exit 1
+        fi
         ;;
       'darwin')
         # Make sure /usr/local/bin exists
         if [ -d /usr/local/bin ]; then
-          currentCompleteFailed "mkdir -m 0555 -p /usr/local/bin" "Create /usr/local/bin" "/usr/local/bin Created Successfully" "Failed to create /usr/local/bin"
+          prettyBoxCurrent "Create /usr/local/bin"
+          mkdir -m 0555 -p /usr/local/bin
+          if [ $? == 0 ]; then
+            prettyBoxComplete "/usr/local/bin Created Successfully"
+          else
+            prettyBoxFailed "Failed to create /usr/local/bin"
+            exit 1
+          fi
         fi
 
         # Copy Binary
-        currentCompleteFailed "cp ${APP_MAIN_NAME} /usr/local/bin/${APP_MAIN_NAME}.new" "Copying ${APP_MAIN_NAME} to /usr/local/bin/${APP_MAIN_NAME}.new" "Binary copied succesfully" "Failed to copy Binary"
+        prettyBoxCurrent "Copying ${APP_MAIN_NAME} to /usr/local/bin/${APP_MAIN_NAME}.new"
+        cp "${APP_MAIN_NAME}" "/usr/local/bin/${APP_MAIN_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary copied succesfully"
+        else
+          prettyBoxFailed "Failed to copy Binary"
+          exit 1
+        fi
 
         # Set Binary Mode
-        currentCompleteFailed "chmod a=x /usr/local/bin/${APP_MAIN_NAME}.new" "Setting /usr/local/bin/${APP_MAIN_NAME}.new to a=x" "Binary File modes set succesfully" "Failed to set Binary File modes"
+        prettyBoxCurrent "Setting /usr/local/bin/${APP_MAIN_NAME}.new to a=x"
+        chmod a=x "/usr/local/bin/${APP_MAIN_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary File modes set succesfully"
+        else
+          prettyBoxFailed "Failed to set Binary File modes"
+          exit 1
+        fi
         
         # Overwrite /usr/bin/netbird
-        currentCompleteFailed "mv /usr/local/bin/${APP_MAIN_NAME}.new /usr/local/bin/${APP_MAIN_NAME}" "Overwriting /usr/local/bin/${APP_MAIN_NAME} with /usr/local/bin/${APP_MAIN_NAME}.new" "Binary Overwritten succesfully" "Failed to overwrite /usr/bin/${APP_MAIN_NAME}"
+        prettyBoxCurrent "Overwriting /usr/local/bin/${APP_MAIN_NAME} with /usr/local/bin/${APP_MAIN_NAME}.new"
+        mv "/usr/local/bin/${APP_MAIN_NAME}.new" "/usr/local/bin/${APP_MAIN_NAME}"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary Overwritten succesfully"
+        else
+          prettyBoxFailed "Failed to overwrite /usr/bin/${APP_MAIN_NAME}"
+          exit 1
+        fi
         ;;
     esac
   fi
@@ -326,31 +393,87 @@ function installNativePlaceBinarys () {
     case "${OS}" in
       'linux')
         # Copy Binary
-        currentCompleteFailed "cp ${APP_UI_NAME} /usr/bin/${APP_UI_NAME}.new" "Copying ${APP_UI_NAME} to /usr/bin/${APP_UI_NAME}.new" "Binary copied succesfully" "Failed to copy Binary"
+        prettyBoxCurrent "Copying ${APP_UI_NAME} to /usr/bin/${APP_UI_NAME}.new"
+        cp "${APP_UI_NAME}" "/usr/bin/${APP_UI_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary copied succesfully"
+        else
+          prettyBoxFailed "Failed to copy Binary"
+          exit 1
+        fi
 
         # Set Binary Mode
-        currentCompleteFailed "chmod 775 /usr/bin/${APP_UI_NAME}.new" "Setting /usr/bin/${APP_UI_NAME}.new to 0755" "Binary file modes set succesfully" "Failed to set Binary file modes"
+        prettyBoxCurrent "Setting /usr/bin/${APP_UI_NAME}.new to 0755"
+        chmod 775 "/usr/bin/${APP_UI_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary file modes set succesfully"
+        else
+          prettyBoxFailed "Failed to set Binary file modes"
+          exit 1
+        fi
 
         # Set owner and group
-        currentCompleteFailed "chown root:root /usr/bin/${APP_UI_NAME}.new" "Setting /usr/bin/${APP_UI_NAME}.new owner and group to root" "Binary file owner and group set succesfully" "Failed to set Binary file owner and group"
+        prettyBoxCurrent "Setting /usr/bin/${APP_UI_NAME}.new owner and group to root"
+        chown root:root "/usr/bin/${APP_UI_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary file owner and group set succesfully"
+        else
+          prettyBoxFailed "Failed to set Binary file owner and group"
+          exit 1
+        fi
 
         # Overwrite /usr/bin/netbird
-        currentCompleteFailed "mv /usr/bin/${APP_UI_NAME}.new /usr/bin/${APP_UI_NAME}" "Overwriting /usr/bin/${APP_UI_NAME} with /usr/bin/${APP_UI_NAME}.new" "Binary Overwritten succesfully" "Failed to overwrite /usr/bin/${APP_UI_NAME}"
+        prettyBoxCurrent "Overwriting /usr/bin/${APP_UI_NAME} with /usr/bin/${APP_UI_NAME}.new"
+        mv "/usr/bin/${APP_UI_NAME}.new" "/usr/bin/${APP_UI_NAME}"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary Overwritten succesfully"
+        else
+          prettyBoxFailed "Failed to overwrite /usr/bin/${APP_UI_NAME}"
+          exit 1
+        fi
         ;;
       'darwin')
         # Make sure /usr/local/bin exists
         if [ -d /usr/local/bin ]; then
-          currentCompleteFailed "mkdir -m 0555 -p /usr/local/bin" "Create /usr/local/bin" "/usr/local/bin Created Successfully" "Failed to create /usr/local/bin"
+          prettyBoxCurrent "Create /usr/local/bin"
+          mkdir -m 0555 -p /usr/local/bin
+          if [ $? == 0 ]; then
+            prettyBoxComplete "/usr/local/bin Created Successfully"
+          else
+            prettyBoxFailed "Failed to create /usr/local/bin"
+            exit 1
+          fi
         fi
 
         # Copy Binary
-        currentCompleteFailed "cp ${APP_UI_NAME} /usr/local/bin/${APP_UI_NAME}.new" "Copying ${APP_UI_NAME} to /usr/local/bin/${APP_UI_NAME}.new" "Binary copied succesfully" "Failed to copy Binary"
+        prettyBoxCurrent "Copying ${APP_UI_NAME} to /usr/local/bin/${APP_UI_NAME}.new"
+        cp "${APP_UI_NAME}" "/usr/local/bin/${APP_UI_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary copied succesfully"
+        else
+          prettyBoxFailed "Failed to copy Binary"
+          exit 1
+        fi
 
         # Set Binary Mode
-        currentCompleteFailed "chmod a=x /usr/local/bin/${APP_UI_NAME}.new" "Setting /usr/local/bin/${APP_UI_NAME}.new to a=x" "Binary file modes set succesfully" "Failed to set Binary file modes"
+        prettyBoxCurrent "Setting /usr/local/bin/${APP_UI_NAME}.new to a=x"
+        chmod a=x "/usr/local/bin/${APP_UI_NAME}.new"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary file modes set succesfully"
+        else
+          prettyBoxFailed "Failed to set Binary file modes"
+          exit 1
+        fi
         
         # Overwrite /usr/bin/netbird
-        currentCompleteFailed "mv /usr/local/bin/${APP_UI_NAME}.new /usr/local/bin/${APP_UI_NAME}" "Overwriting /usr/local/bin/${APP_UI_NAME} with /usr/local/bin/${APP_MAIN_NAME}.new" "Binary Overwritten succesfully" "Failed to overwrite /usr/bin/${APP_UI_NAME}"
+        prettyBoxCurrent "Overwriting /usr/local/bin/${APP_UI_NAME} with /usr/local/bin/${APP_MAIN_NAME}.new"
+        mv "/usr/local/bin/${APP_UI_NAME}.new" "/usr/local/bin/${APP_UI_NAME}"
+        if [ $? == 0 ]; then
+          prettyBoxComplete "Binary Overwritten succesfully"
+        else
+          prettyBoxFailed "Failed to overwrite /usr/bin/${APP_UI_NAME}"
+          exit 1
+        fi
         ;;
     esac
   fi
@@ -368,14 +491,29 @@ function installNativeService () {
       esac
       
       # Install Service
-      ADDITIONAL_ERROR="*****************************************************\n"
-      ADDITIONAL_ERROR+="* IF ABOVE SAYS \"INIT ALREADY EXISTS\" OR SOMETHING SIMMILAR\n"
-      ADDITIONAL_ERROR+="* RUN sudo ${NETBIRD_BIN} service uninstall\n"
-      ADDITIONAL_ERROR+="*****************************************************\n"
-      currentCompleteFailed "${NETBIRD_BIN} service install >/dev/null" "Installing Service" "Service Successfully Installed" "Failed to install service" "${ADDITIONAL_ERROR}"
+      prettyBoxCurrent "Installing Service"
+      ${NETBIRD_BIN} service install >/dev/null
+      if [ $? == 0 ]; then
+        prettyBoxComplete "Service Successfully Installed"
+      else
+        prettyBoxFailed "Failed to install service"
+        echo
+        prettyError "*****************************************************"
+        prettyError "* IF ABOVE SAYS \"INIT ALREADY EXISTS\" OR SOMETHING SIMMILAR"
+        prettyError "* RUN sudo ${NETBIRD_BIN} service uninstall"
+        prettyError "*****************************************************"
+        exit 1
+      fi
 
       # Start Service
-      currentCompleteFailed "${NETBIRD_BIN} service start >/dev/null" "Starting Service" "Service Successfully Started" "Failed to start service"
+      prettyBoxCurrent "Starting Service"
+      ${NETBIRD_BIN} service start >/dev/null
+      if [ $? == 0 ]; then
+        prettyBoxComplete "Service Successfully Started"
+      else
+        prettyBoxFailed "Failed to start service"
+        exit 1
+      fi
     fi
   fi
 }
@@ -404,10 +542,10 @@ function installNativePreconfigure () {
 function installNative () {
   # Create Tempory Directory
   tmp_dir=$(mktemp -d 2>/dev/null || mktemp -d -t 'netbird-install.XXXXXXXXXX')
-  cd "$tmp_dir" || exit 1
+  cd "$tmp_dir"
 
-  APP_FILENAME="${APP_MAIN_NAME}_${VERSION}_${OS}_${OS_TYPE}"
-  UI_FILENAME="${APP_UI_NAME}-${OS}_${VERSION}_${OS}_${OS_TYPE}"
+  APP_FILENAME="${APP_MAIN_NAME}_${VERSION}_${OS}_${OS_type}"
+  UI_FILENAME="${APP_UI_NAME}-${OS}_${VERSION}_${OS}_${OS_type}"
 
   # Generate App Binary URLS
   APP_URL="${BASE_URL}/v${VERSION}/${APP_FILENAME}.tar.gz"
@@ -426,9 +564,14 @@ function installDocker () {
       exit 1
     fi
 
-    # Pull Docker Container
-    currentCompleteFailed "docker pull netbirdio/netbird:${VERSION}" "Pulling Container" "Pull Complete" "Failed to pull container"
-
+    prettyBoxCurrent "Pulling Container"
+    docker pull "netbirdio/netbird:${VERSION}"
+    if [ $? == 0 ]; then
+      prettyBoxComplete "Pull Complete"
+    else
+      prettyBoxFailed "Failed to pull container"
+      exit 1
+    fi
     DOCKER_COMMAND="docker run --rm --cap-add=NET_ADMIN -d"
     DOCKER_COMMAND+=" --name ${DOCKER_NAME}"
     DOCKER_COMMAND+=" --hostname ${DOCKER_HOSTNAME}"
@@ -436,9 +579,14 @@ function installDocker () {
     DOCKER_COMMAND+=" -e NB_MANAGEMENT_URL=${MANAGEMENT_URL}"
     DOCKER_COMMAND+=" -v netbird-client:/etc/netbird"
     DOCKER_COMMAND+=" netbirdio/netbird:${VERSION}"
-
-    # Create Container
-    currentCompleteFailed "${DOCKER_COMMAND}" "Starting Container" "Successfully Started" "Failed to start container"
+    prettyBoxCurrent "Starting Container"
+    ${DOCKER_COMMAND}
+    if [ $? == 0 ]; then
+      prettyBoxComplete "Successfully Started"
+    else
+      prettyBoxFailed "Failed to start container"
+      exit 1
+    fi
   fi
 }
 showInstallSummary
