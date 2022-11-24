@@ -25,5 +25,5 @@ You can pass the shell script arguments to allow it to do more things automaticl
 To do a fully automated install you could run the following (substituting your own setup key):
 
 ```bash
-curl -f https://raw.githubusercontent.com/physk/netbird-installer/main/install.sh | sudo bash --quiet --install-ui --setup-key=77C9F991-DC68-46FA-B06C-E02FC102697F
+curl -OLs https://raw.githubusercontent.com/physk/netbird-installer/main/install.sh && sudo bash install.sh --quiet --install-ui --setup-key=77C9F991-DC68-46FA-B06C-E02FC102697F
 ```
