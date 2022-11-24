@@ -483,7 +483,7 @@ function installNativeService () {
       if [ $? == 0 ]; then
         echo -e "[ ${green}COMPLETE${clear} ] Service Successfully Installed"
       else
-        echo -e "[ ${red}FAILED${clear} ] Failed to install service"
+        echo -e "[ ${red}FAILED${clear}   ] Failed to install service"
         echo
         echo -e "${red}*****************************************************${clear}"
         echo -e "${red}* IF ABOVE SAYS \"INIT ALREADY EXISTS\" OR SOMETHING SIMMILAR${clear}"
@@ -497,7 +497,7 @@ function installNativeService () {
       if [ $? == 0 ]; then
         echo -e "[ ${green}COMPLETE${clear} ] Service Successfully Started"
       else
-        echo -e "[ ${red}FAILED${clear} ] Failed to start service"
+        echo -e "[ ${red}FAILED${clear}   ] Failed to start service"
       fi
     fi
   fi
@@ -548,6 +548,14 @@ function installDocker () {
       echo -e "${red}You MUST enter a Setup Key for a docker install${clear}"
       exit 1
     fi
+
+    echo -e "[ ${yellow}CURRENT${clear}  ] Pulling Container"
+    docker pull "netbirdio/netbird:${VERSION}"
+    if [ $? == 0 ]; then
+      echo -e "[ ${green}COMPLETED${clear} ] Pull Complete"
+    else
+      echo -e "[ ${red}FAILED${clear}   ] Failed to pull container"
+    fi
     DOCKER_COMMAND="docker run --rm --cap-add=NET_ADMIN -d"
     DOCKER_COMMAND+=" --name ${DOCKER_NAME}"
     DOCKER_COMMAND+=" --hostname ${DOCKER_HOSTNAME}"
@@ -555,8 +563,13 @@ function installDocker () {
     DOCKER_COMMAND+=" -e NB_MANAGEMENT_URL=${MANAGEMENT_URL}"
     DOCKER_COMMAND+=" -v netbird-client:/etc/netbird"
     DOCKER_COMMAND+=" netbirdio/netbird:${VERSION}"
-
+    echo -e "[ ${yellow}CURRENT${clear}  ] Starting Container"
     ${DOCKER_COMMAND}
+    if [ $? == 0 ]; then
+      echo -e "[ ${green}COMPLETED${clear} ] Successfully Started"
+    else
+      echo -e "[ ${red}FAILED${clear}   ] Failed to start container"
+    fi
   fi
 }
 showInstallSummary
