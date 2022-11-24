@@ -20,6 +20,8 @@ DISPLAY_PROMPTS=true
 SETUP_KEY=""
 MANAGEMENT_URL="https://api.wiretrustee.com:33073"
 BASE_URL="https://github.com/${REPO_USER}/${REPO_MAIN}/releases/download"
+DOCKER_NAME="netbird"
+DOCKER_HOSTNAME=$(hostname)
 
 # Color  Variables
 green='\e[32m'
@@ -52,6 +54,9 @@ showHelp () {
   echo "  -m,   --management-url      Management URL (Defaults to Netbird SaaS)"
   echo "  -sk,  --setup-key           Setup Key"
   echo "  -q,   --quiet               Don't present any prompts"
+  echo "Docker Options:"
+  echo "  -dn,  --docker-name         Set docker container name"
+  echo "  -dh,  --docker-hostname     Set docker hostname"
 }
 VERSION=$(getLatestRelease)
 
@@ -106,6 +111,28 @@ while test $# -gt 0; do
       ;;
     -d|--docker)
       INSTALL_DOCKER_BASED=true
+      if [ ! -x "$(command -v docker)" ]; then
+        echo "Docker not installed"
+        exit 1
+      fi
+      shift
+      ;;
+    -dn)
+      shift
+      DOCKER_NAME=${1}
+      shift
+      ;;
+    --docker-name*)
+      DOCKER_NAME=$(echo ${1} | sed -e 's/^[^=]*=//g')
+      shift
+      ;;
+    -dh)
+      shift
+      DOCKER_HOSTNAME=${1}
+      shift
+      ;;
+    --docker-hostname*)
+      DOCKER_HOSTNAME=$(echo ${1} | sed -e 's/^[^=]*=//g')
       shift
       ;;
     -np|--no-preconfigure)
@@ -452,7 +479,7 @@ function installNativeService () {
       
       # Install Service
       echo -e "[ ${yellow}CURRENT${clear}  ] Installing Service"
-      ${NETBIRD_BIN} service install 1>&2
+      ${NETBIRD_BIN} service install >/dev/null
       if [ $? == 0 ]; then
         echo -e "[ ${green}COMPLETE${clear} ] Service Successfully Installed"
       else
@@ -466,7 +493,7 @@ function installNativeService () {
 
       # Start Service
       echo -e "[ ${yellow}CURRENT${clear}  ] Starting Service"
-      ${NETBIRD_BIN} service start 1>&2
+      ${NETBIRD_BIN} service start >/dev/null
       if [ $? == 0 ]; then
         echo -e "[ ${green}COMPLETE${clear} ] Service Successfully Started"
       else
@@ -515,7 +542,23 @@ function installNative () {
   installNativeService
   installNativePreconfigure
 }
+function installDocker () {
+  if ${INSTALL_DOCKER_BASED}; then
+    if [ "${SETUP_KEY}" == "" ]; then
+      echo -e "${red}You MUST enter a Setup Key for a docker install${clear}"
+      exit 1
+    fi
+    DOCKER_COMMAND="docker run --rm --cap-add=NET_ADMIN -d"
+    DOCKER_COMMAND+=" --name ${DOCKER_NAME}"
+    DOCKER_COMMAND+=" --hostname ${DOCKER_HOSTNAME}"
+    DOCKER_COMMAND+=" -e NB_SETUP_KEY=${SETUP_KEY}"
+    DOCKER_COMMAND+=" -e NB_MANAGEMENT_URL=${MANAGEMENT_URL}"
+    DOCKER_COMMAND+=" -v netbird-client:/etc/netbird"
+    DOCKER_COMMAND+=" netbirdio/netbird:${VERSION}"
 
+    ${DOCKER_COMMAND}
+  fi
+}
 showInstallSummary
 checkContinueInstall
 if ${INSTALL_DOCKER_BASED}; then
