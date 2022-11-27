@@ -22,6 +22,11 @@ MANAGEMENT_URL="https://api.wiretrustee.com:33073"
 BASE_URL="https://github.com/${REPO_USER}/${REPO_MAIN}/releases/download"
 DOCKER_NAME="netbird"
 DOCKER_HOSTNAME=$(hostname)
+ALREADY_INSTALLED=false
+
+if command -v netbird >/dev/null; then
+  ALREADY_INSTALLED=true
+fi
 
 # Color  Variables
 green='\e[32m'
@@ -248,6 +253,12 @@ function showInstallSummary () {
   echo -e "| Base URL:                      ${green}${BASE_URL}${clear}"
   echo -e "| Management URL:                ${green}${MANAGEMENT_URL}${clear}"
   echo -e "| Setup Key:                     ${green}${SETUP_KEY}${clear}"
+  echo -e "|"
+  if ${ALREADY_INSTALLED}; then
+    echo -e "| Native Binary Installed        ${green}Yes${clear}"
+  else
+    echo -e "| Native Binary Installed        ${red}No${clear}"
+  fi
   echo -e "------------------------------------------------"
 }
 
@@ -464,10 +475,26 @@ function installNativeService () {
           NETBIRD_BIN=/usr/local/bin/netbird
           ;;
       esac
-      
+      if ${ALREADY_INSTALLED}; then
+        # Stop Service
+        prettyBoxCurrent "Stopping Service"
+        if ${NETBIRD_BIN} service stop >/dev/null; then
+          prettyBoxComplete "Service Successfully Stopped"
+        else
+          prettyBoxFailed "Failed to stop Service" 1
+        fi
+
+        # Uninstall Service
+        prettyBoxCurrent "Uninstalling Service"
+        if ${NETBIRD_BIN} service uninstall >/dev/null; then
+          prettyBoxComplete "Service Successfully Uninstalled"
+        else
+          prettyBoxFailed "Failed to uninstall service" 1
+        fi
+      fi
+
       # Install Service
       prettyBoxCurrent "Installing Service"
-      
       if ${NETBIRD_BIN} service install >/dev/null; then
         prettyBoxComplete "Service Successfully Installed"
       else
