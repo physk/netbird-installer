@@ -352,7 +352,7 @@ function installNativePlaceBinarys () {
         ;;
       'darwin')
         # Make sure /usr/local/bin exists
-        if [ -d /usr/local/bin ]; then
+        if [ ! -d /usr/local/bin ]; then
           prettyBoxCurrent "Create /usr/local/bin"
           # shellcheck disable=SC2174
           if mkdir -m 0555 -p /usr/local/bin; then
@@ -427,7 +427,7 @@ function installNativePlaceBinarys () {
         ;;
       'darwin')
         # Make sure /usr/local/bin exists
-        if [ -d /usr/local/bin ]; then
+        if [ ! -d /usr/local/bin ]; then
           prettyBoxCurrent "Create /usr/local/bin"
           # shellcheck disable=SC2174
           if mkdir -m 0555 -p /usr/local/bin; then
